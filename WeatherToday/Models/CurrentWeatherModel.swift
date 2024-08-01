@@ -7,7 +7,7 @@
 
 import Foundation
 
-class CurrentWeatherModel {
+class CurrentWeatherModel: Decodable {
     var lon: Double
     var lat: Double
     var city: String
@@ -18,39 +18,46 @@ class CurrentWeatherModel {
     var main: String
     var description: String
     
-    init(weatherJson: NSDictionary) {
-        if let coord = weatherJson["coord"] as? NSDictionary {
-            lon = coord["lon"] as? Double ?? 0.0
-            lat = coord["lat"] as? Double ?? 0.0
-        } else {
-            lon = 0.0
-            lat = 0.0
-        }
-
-        if let sys = weatherJson["sys"] as? NSDictionary {
-            country = sys["country"] as? String ?? "Unknown"
-        } else {
-            country = "Unknown"
-        }
-        city = weatherJson["name"] as? String ?? "Unknown"
+    enum CodingKeys: String, CodingKey {
+        case coord, sys, main, weather, name
+    }
+    
+    enum CoordKeys: String, CodingKey {
+        case lon, lat
+    }
+    
+    enum SysKeys: String, CodingKey {
+        case country
+    }
+    
+    enum MainKeys: String, CodingKey {
+        case temp, temp_max, temp_min
+    }
+    
+    enum WeatherKeys: String, CodingKey {
+        case main, description
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        if let main = weatherJson["main"] as? NSDictionary {
-            currentTemp = Int((main["temp"] as? Double ?? 0) - 273)
-            maxTemp = Int((main["temp_max"] as? Double ?? 0) - 273)
-            minTemp = Int((main["temp_min"] as? Double ?? 0) - 273)
-        } else {
-            currentTemp = 0
-            maxTemp = 0
-            minTemp = 0
-        }
+        let coordContainer = try container.nestedContainer(keyedBy: CoordKeys.self, forKey: .coord)
+        lon = try coordContainer.decode(Double.self, forKey: .lon)
+        lat = try coordContainer.decode(Double.self, forKey: .lat)
         
-        if let weatherArray = weatherJson["weather"] as? [NSDictionary],
-           let weather = weatherArray.first {
-            main = weather["main"] as? String ?? "Unknown"
-            description = weather["description"] as? String ?? "Unknown"
-        } else {
-            main = "Unknown"
-            description = "Unknown"
-        }
+        let sysContainer = try container.nestedContainer(keyedBy: SysKeys.self, forKey: .sys)
+        country = try sysContainer.decode(String.self, forKey: .country)
+        
+        city = try container.decode(String.self, forKey: .name)
+        
+        let mainContainer = try container.nestedContainer(keyedBy: MainKeys.self, forKey: .main)
+        currentTemp = Int(try mainContainer.decode(Double.self, forKey: .temp) - 273.15)
+        maxTemp = Int(try mainContainer.decode(Double.self, forKey: .temp_max) - 273.15)
+        minTemp = Int(try mainContainer.decode(Double.self, forKey: .temp_min) - 273.15)
+        
+        var weatherArray = try container.nestedUnkeyedContainer(forKey: .weather)
+        let weatherContainer = try weatherArray.nestedContainer(keyedBy: WeatherKeys.self)
+        main = try weatherContainer.decode(String.self, forKey: .main)
+        description = try weatherContainer.decode(String.self, forKey: .description)
     }
 }

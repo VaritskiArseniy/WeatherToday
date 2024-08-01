@@ -7,28 +7,42 @@
 
 import Foundation 
 
-class DailyWeatherModel {
+struct DailyWeatherResponse: Decodable {
+    let forecast: Forecast
+}
+
+struct Forecast: Decodable {
+    let forecastday: [DailyWeatherModel]
+}
+
+class DailyWeatherModel: Decodable {
     var code: Int
     var maxTemp: Int
     var minTemp: Int
     var date: String
     
-    init(weatherJson: NSDictionary) {
+    enum CodingKeys: String, CodingKey {
+       case date, day
+    }
+    
+    enum DayKeys: String, CodingKey {
+        case maxtemp_c, mintemp_c, condition
+    }
+    
+    enum ConditionKeys: String, CodingKey{
+        case code
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        date = try container.decode(String.self, forKey: .date)
         
-        if let day = weatherJson["day"] as? NSDictionary {
-            maxTemp = Int(day["maxtemp_c"] as? Double ?? 0)
-            minTemp = Int(day["mintemp_c"] as? Double ?? 0)
-            if let condition = day["condition"] as? NSDictionary {
-                code = condition["code"] as? Int ?? 0
-            } else {
-                code = 0
-            }
-        } else {
-            maxTemp = 0
-            minTemp = 0
-            code = 0
-        }
+        let dayContainer = try container.nestedContainer(keyedBy: DayKeys.self, forKey: .day)
+        maxTemp = Int(try dayContainer.decode(Double.self, forKey: .maxtemp_c))
+        minTemp = Int(try dayContainer.decode(Double.self, forKey: .mintemp_c))
         
-        date = weatherJson["date"] as? String ?? ""
+        let conditionContainer = try dayContainer.nestedContainer(keyedBy: ConditionKeys.self, forKey: .condition)
+        code = try conditionContainer.decode(Int.self, forKey: .code)
     }
 }

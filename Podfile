@@ -9,5 +9,6 @@ target 'WeatherToday' do
 
  pod 'R.swift'
  pod 'SnapKit'
+ pod 'Alamofire'
 
 end

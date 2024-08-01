@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Alamofire
 
 class HourWeatherService {
     let apiKey = "3443f5398bac843ff606f5305ad2fc9f"
@@ -18,35 +19,14 @@ class HourWeatherService {
             return
         }
         
-        let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
-            if let error = error {
-                print("Error: \(error)")
-                completion(nil)
-                return
-            }
-            
-            guard let data = data else {
-                completion(nil)
-                return
-            }
-            
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? NSDictionary {
-                    if let list = json["list"] as? [NSDictionary] {
-                        let weatherModels = list.map { HourWeatherModel(weatherJson: $0) }
-                        completion(weatherModels)
-                    } else {
-                        completion(nil)
-                    }
-                } else {
-                    completion(nil)
-                }
-            } catch let error {
-                print("JSON parsing error: \(error)")
+        AF.request(url).responseDecodable(of: HourlyWeatherResponse.self) { response in
+            switch response.result {
+            case .success(let hourlyWeatherResponse):
+                completion(hourlyWeatherResponse.list)
+            case .failure(let error):
+                print("Error fetching weather: \(error)")
                 completion(nil)
             }
         }
-        
-        task.resume()
     }
 }

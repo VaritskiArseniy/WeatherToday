@@ -7,30 +7,44 @@
 
 import Foundation
 
+struct HourlyWeatherResponse: Decodable {
+    let list: [HourWeatherModel]
+}
 
-class HourWeatherModel {
+struct Weather: Decodable {
+    let main: String
+    let description: String
+}
+
+class HourWeatherModel: Decodable {
     var temp: Int
     var main: String
     var description: String
     var dateTime: String
     
-    init(weatherJson: NSDictionary) {
-        if let main = weatherJson["main"] as? NSDictionary {
-            temp = Int((main["temp"] as? Double ?? 0) - 273)
-        } else {
-            temp = 0
+    enum CodingKeys: String, CodingKey {
+        case main, weather, dt_txt
+    }
+    
+    enum MainKeys: String, CodingKey {
+        case temp
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        let mainContainer = try container.nestedContainer(keyedBy: MainKeys.self, forKey: .main)
+        temp = Int(try mainContainer.decode(Double.self, forKey: .temp) - 273)
+        
+        let weatherArray = try container.decode([Weather].self, forKey: .weather)
+        guard let weather = weatherArray.first else {
+            throw DecodingError.dataCorruptedError(forKey: .weather, in: container, debugDescription: "Weather array is empty.")
         }
         
-        if let weatherArray = weatherJson["weather"] as? [NSDictionary],
-           let weather = weatherArray.first {
-            main = weather["main"] as? String ?? "Unknown"
-            description = weather["description"] as? String ?? "Unknown"
-        } else {
-            main = "Unknown"
-            description = "Unknown"
-        }
+        main = weather.main
+        description = weather.description
         
-        dateTime = weatherJson["dt_txt"] as? String ?? "Unknown"
+        dateTime = try container.decode(String.self, forKey: .dt_txt)
     }
 }
 
