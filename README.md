@@ -9,7 +9,7 @@ WeatherToday is a weather forecast application that provides users with current 
 - **UIKit**: For creating the user interface.
 - **SnapKit**: For easy Auto Layout handling.
 - **CoreLocation**: For determining the user's current location.
-- **Alamofire**: For networking and API interactions.
+- **Alamofire**: For networking and API interactions (on an additional branch).
 - **R.swift**: For safe resource management.
 
 ## Weather Data Providers
